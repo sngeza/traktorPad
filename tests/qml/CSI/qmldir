@@ -1,0 +1,8 @@
+module CSI
+singleton Store 1.0 Store.qml
+AppProperty 1.0 AppProperty.qml
+Module 1.0 Module.qml
+Wire 1.0 Wire.qml
+DirectPropertyAdapter 1.0 DirectPropertyAdapter.qml
+MappingPropertyDescriptor 1.0 MappingPropertyDescriptor.qml
+Hotcues 1.0 Hotcues.qml

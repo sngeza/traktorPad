@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TraktorPad">
+  <meta name="theme-color" content="#0a0c0f">
+  <title>TraktorPad</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand">Traktor<span>Pad</span></div>
+
+    <div class="status" id="status" data-state="connecting">
+      <span class="dot"></span><span id="status-text">Connecting</span>
+    </div>
+
+    <div class="master">
+      <span class="label">Master</span>
+      <span class="value" id="master-bpm">--.-</span>
+      <span class="unit">BPM</span>
+    </div>
+
+    <div class="bar-actions">
+      <div class="segmented" role="group" aria-label="Decks shown">
+        <button type="button" data-layout="2">A B</button>
+        <button type="button" data-layout="4">A B C D</button>
+      </div>
+      <button type="button" class="lock" id="lock" aria-pressed="false">
+        <span class="lock-icon" aria-hidden="true"></span><span id="lock-text">Touch on</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="decks" id="decks" data-layout="2"></main>
+
+  <template id="deck-template">
+    <section class="deck">
+      <div class="deck-head">
+        <div class="letter"></div>
+        <div class="track">
+          <div class="title"></div>
+          <div class="artist"></div>
+        </div>
+        <div class="badges">
+          <span class="badge live">Live</span>
+          <span class="badge master-badge">Master</span>
+        </div>
+      </div>
+
+      <div class="readout">
+        <div class="stat bpm"><span class="num"></span><span class="sub"></span></div>
+        <div class="stat key"><span class="num"></span><span class="sub">Key</span></div>
+        <div class="stat time elapsed"><span class="num"></span><span class="sub">Elapsed</span></div>
+        <div class="stat time remain"><span class="num"></span><span class="sub">Remaining</span></div>
+      </div>
+
+      <div class="overview">
+        <div class="fill"></div>
+        <div class="markers"></div>
+        <div class="playhead"></div>
+      </div>
+
+      <div class="controls">
+        <div class="transport">
+          <button type="button" class="btn cue" data-hold="cue">Cue</button>
+          <button type="button" class="btn play" data-tap="play"><span class="play-icon" aria-hidden="true"></span></button>
+          <button type="button" class="btn sync" data-tap="sync">Sync</button>
+        </div>
+
+        <div class="pads"></div>
+
+        <div class="tools">
+          <div class="group loop">
+            <span class="group-label">Loop</span>
+            <button type="button" class="btn small" data-loop-step="-1" aria-label="Halve loop">&#8722;</button>
+            <button type="button" class="btn loop-toggle" data-tap="loop"><span class="loop-size"></span></button>
+            <button type="button" class="btn small" data-loop-step="1" aria-label="Double loop">+</button>
+          </div>
+          <div class="group jump">
+            <span class="group-label">Jump</span>
+            <button type="button" class="btn small" data-jump="-1" aria-label="Jump back">&#9664;</button>
+            <button type="button" class="btn jump-size" data-jump-cycle><span class="jump-size-value"></span></button>
+            <button type="button" class="btn small" data-jump="1" aria-label="Jump forward">&#9654;</button>
+          </div>
+          <div class="group toggles">
+            <button type="button" class="btn toggle flux" data-tap="flux">Flux</button>
+            <button type="button" class="btn toggle keylock" data-tap="keylock">Key lock</button>
+            <button type="button" class="btn toggle load" data-load><span class="load-fill"></span><span class="load-text">Hold to load</span></button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
