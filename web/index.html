@@ -15,7 +15,7 @@
   <header class="bar">
     <div class="brand">Traktor<span>Pad</span></div>
 
-    <div class="status" id="status" data-state="connecting">
+    <div class="status" id="status" data-state="offline">
       <span class="dot"></span><span id="status-text">Connecting</span>
     </div>
 
@@ -26,9 +26,10 @@
     </div>
 
     <div class="bar-actions">
-      <div class="segmented" role="group" aria-label="Decks shown">
-        <button type="button" data-layout="2">A B</button>
-        <button type="button" data-layout="4">A B C D</button>
+      <div class="segmented" role="group" aria-label="Waveform zoom">
+        <button type="button" id="zoom-out" aria-label="Zoom out">&#8722;</button>
+        <span class="zoom-value" id="zoom-value"></span>
+        <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
       </div>
       <button type="button" class="lock" id="lock" aria-pressed="false">
         <span class="lock-icon" aria-hidden="true"></span><span id="lock-text">Touch on</span>
@@ -36,67 +37,102 @@
     </div>
   </header>
 
-  <main class="decks" id="decks" data-layout="2"></main>
+  <main class="decks" id="decks"></main>
+
+  <section class="browser" id="browser">
+    <div class="browser-head">
+      <button type="button" class="tool back" id="back" aria-label="Back">&#8249;</button>
+      <div class="crumbs" id="crumbs"></div>
+      <div class="count" id="count"></div>
+      <div class="actions">
+        <button type="button" class="tool load" data-load="1"><b>A</b><span>Load</span></button>
+        <button type="button" class="tool load" data-load="2"><b>B</b><span>Load</span></button>
+        <button type="button" class="tool" id="preview">Preview</button>
+        <button type="button" class="tool" id="prep">+ Prep</button>
+      </div>
+    </div>
+
+    <div class="preview" id="preview-strip" hidden>
+      <button type="button" class="tool" id="preview-toggle">Play / Pause</button>
+      <div class="preview-bar" id="preview-bar"><div class="preview-fill" id="preview-fill"></div></div>
+      <div class="preview-time" id="preview-time"></div>
+      <button type="button" class="tool load" data-from-preview="1"><b>A</b><span>Load</span></button>
+      <button type="button" class="tool load" data-from-preview="2"><b>B</b><span>Load</span></button>
+      <button type="button" class="tool" id="preview-close" aria-label="Close preview">&#10005;</button>
+    </div>
+
+    <div class="columns" id="columns">
+      <button type="button" class="col deckcol" data-sort="0">#</button>
+      <button type="button" class="col" data-sort="2">Title</button>
+      <button type="button" class="col" data-sort="3">Artist</button>
+      <button type="button" class="col num" data-sort="5">BPM</button>
+      <button type="button" class="col num" data-sort="28">Key</button>
+      <button type="button" class="col num" data-sort="22">Rating</button>
+    </div>
+
+    <div class="list" id="list">
+      <div class="list-space" id="list-space"></div>
+      <div class="list-rows" id="list-rows"></div>
+    </div>
+    <div class="browser-note" id="browser-note" hidden></div>
+  </section>
 
   <template id="deck-template">
     <section class="deck">
-      <div class="deck-head">
-        <div class="letter"></div>
-        <div class="track">
-          <div class="title"></div>
-          <div class="artist"></div>
+      <div class="info">
+        <div class="deck-head">
+          <div class="letter"></div>
+          <div class="track">
+            <div class="title"></div>
+            <div class="artist"></div>
+          </div>
+        </div>
+        <div class="readout">
+          <div class="stat bpm">
+            <span class="num"></span>
+            <span class="sub"></span>
+          </div>
+          <div class="stat key">
+            <span class="num"></span>
+            <span class="sub">Key</span>
+          </div>
+        </div>
+        <div class="phase" aria-label="Sync phase">
+          <div class="phase-fill"></div>
+          <div class="phase-centre"></div>
+          <span class="phase-label"></span>
+        </div>
+      </div>
+
+      <div class="waves">
+        <div class="scroll">
+          <canvas class="scroll-canvas"></canvas>
+          <div class="wave-note"></div>
+        </div>
+        <div class="overview">
+          <canvas class="overview-canvas"></canvas>
+          <div class="seek-hint">Hold to seek a live deck</div>
+        </div>
+      </div>
+
+      <div class="times">
+        <div class="stat remain"><span class="num"></span><span class="sub">Remaining</span></div>
+        <div class="stat elapsed"><span class="num"></span><span class="sub">Elapsed</span></div>
+        <div class="beats">
+          <div><span class="beat-now"></span><span class="sub">Bar . beat</span></div>
+          <div><span class="beat-left"></span><span class="sub">Bars left</span></div>
         </div>
         <div class="badges">
           <span class="badge live">Live</span>
           <span class="badge master-badge">Master</span>
-        </div>
-      </div>
-
-      <div class="readout">
-        <div class="stat bpm"><span class="num"></span><span class="sub"></span></div>
-        <div class="stat key"><span class="num"></span><span class="sub">Key</span></div>
-        <div class="stat time elapsed"><span class="num"></span><span class="sub">Elapsed</span></div>
-        <div class="stat time remain"><span class="num"></span><span class="sub">Remaining</span></div>
-      </div>
-
-      <div class="overview">
-        <div class="fill"></div>
-        <div class="markers"></div>
-        <div class="playhead"></div>
-      </div>
-
-      <div class="controls">
-        <div class="transport">
-          <button type="button" class="btn cue" data-hold="cue">Cue</button>
-          <button type="button" class="btn play" data-tap="play"><span class="play-icon" aria-hidden="true"></span></button>
-          <button type="button" class="btn sync" data-tap="sync">Sync</button>
-        </div>
-
-        <div class="pads"></div>
-
-        <div class="tools">
-          <div class="group loop">
-            <span class="group-label">Loop</span>
-            <button type="button" class="btn small" data-loop-step="-1" aria-label="Halve loop">&#8722;</button>
-            <button type="button" class="btn loop-toggle" data-tap="loop"><span class="loop-size"></span></button>
-            <button type="button" class="btn small" data-loop-step="1" aria-label="Double loop">+</button>
-          </div>
-          <div class="group jump">
-            <span class="group-label">Jump</span>
-            <button type="button" class="btn small" data-jump="-1" aria-label="Jump back">&#9664;</button>
-            <button type="button" class="btn jump-size" data-jump-cycle><span class="jump-size-value"></span></button>
-            <button type="button" class="btn small" data-jump="1" aria-label="Jump forward">&#9654;</button>
-          </div>
-          <div class="group toggles">
-            <button type="button" class="btn toggle flux" data-tap="flux">Flux</button>
-            <button type="button" class="btn toggle keylock" data-tap="keylock">Key lock</button>
-            <button type="button" class="btn toggle load" data-load><span class="load-fill"></span><span class="load-text">Hold to load</span></button>
-          </div>
+          <span class="badge sync-badge">Sync</span>
+          <span class="badge loop-badge">Loop</span>
         </div>
       </div>
     </section>
   </template>
 
+  <script src="wave.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -6,3 +6,4 @@ Wire 1.0 Wire.qml
 DirectPropertyAdapter 1.0 DirectPropertyAdapter.qml
 MappingPropertyDescriptor 1.0 MappingPropertyDescriptor.qml
 Hotcues 1.0 Hotcues.qml
+BrowserDataType 1.0 BrowserDataType.qml

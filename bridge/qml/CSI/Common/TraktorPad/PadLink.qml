@@ -5,7 +5,12 @@
 //   - commands come in through a long-poll GET on /bridge/poll
 //
 // Everything talks to the TraktorPad server on this Mac (127.0.0.1); the server
-// is what the iPad connects to. Keep this file ES5 - Traktor ships an old Qt.
+// is what the iPad connects to. Keep this file ES5 - it must run in whatever Qt
+// Traktor ships.
+//
+// Traktor may instantiate the same QML several times (two screens of one
+// controller, two controllers). The server therefore picks one instance per
+// channel as the owner; only the owner publishes state and receives commands.
 
 import QtQuick 2.0
 
@@ -13,7 +18,12 @@ Item {
   id: link
 
   property string baseUrl: "http://127.0.0.1:8765"
+  property string channel: "main"
 
+  // True once the server has picked this instance to speak for its channel.
+  property bool   owner: false
+
+  property string instanceId: ""
   // -1 asks the server for its current head, so a backlog is never replayed
   // into a running set after Traktor (re)starts.
   property int    lastSeq: -1
@@ -30,22 +40,32 @@ Item {
   // Queue `data` under section/key (e.g. "decks"/"1"). Later pushes for the same
   // key replace earlier ones, so a burst of property changes costs one request.
   function push(section, key, data) {
+    if (!owner) return
     if (!pending[section]) pending[section] = {}
     pending[section][String(key)] = data
     hasPending = true
     if (!flushTimer.running) flushTimer.start()
   }
 
+  function post(path, payload) {
+    var request = new XMLHttpRequest()
+    request.open("POST", baseUrl + path, true)
+    request.setRequestHeader("Content-Type", "application/json")
+    request.send(JSON.stringify(payload))
+  }
+
   function flush() {
     if (!hasPending) return
-    var body = JSON.stringify({ patch: pending })
+    var patch = pending
     pending = {}
     hasPending = false
+    post("/bridge/state", { channel: channel, id: instanceId, patch: patch })
+  }
 
-    var request = new XMLHttpRequest()
-    request.open("POST", baseUrl + "/bridge/state", true)
-    request.setRequestHeader("Content-Type", "application/json")
-    request.send(body)
+  // Shows up in the terminal running the server - the only window into what
+  // this code is doing inside Traktor.
+  function log(message) {
+    post("/bridge/log", { channel: channel, id: instanceId, message: String(message) })
   }
 
   Timer { id: flushTimer; interval: 30; onTriggered: link.flush() }
@@ -71,7 +91,7 @@ Item {
           handleResponse(JSON.parse(request.responseText))
           ok = true
         } catch (e) {
-          console.log("TraktorPad: bad poll response: " + e)
+          link.log("bad poll response: " + e)
         }
       }
 
@@ -80,21 +100,25 @@ Item {
       repollTimer.restart()
     }
 
-    request.open("GET", baseUrl + "/bridge/poll?after=" + lastSeq, true)
+    request.open("GET", baseUrl + "/bridge/poll?channel=" + channel
+                 + "&id=" + instanceId + "&after=" + lastSeq, true)
     request.send()
     watchdog.restart()
   }
 
   function handleResponse(response) {
     if (typeof response.seq === "number") lastSeq = response.seq
-    if (response.needState) resyncRequested()
 
-    var commands = response.commands || []
+    var wasOwner = owner
+    owner = !!response.owner
+    if (owner && (response.needState || !wasOwner)) resyncRequested()
+
+    var commands = owner ? (response.commands || []) : []
     for (var i = 0; i < commands.length; i++) {
       try {
         command(commands[i])
       } catch (e) {
-        console.log("TraktorPad: command failed: " + e)
+        link.log("command " + JSON.stringify(commands[i]) + " failed: " + e)
       }
     }
   }
@@ -114,5 +138,8 @@ Item {
     }
   }
 
-  Component.onCompleted: repollTimer.start()
+  Component.onCompleted: {
+    instanceId = channel + "-" + Math.floor(Math.random() * 1e9).toString(36)
+    repollTimer.start()
+  }
 }
