@@ -150,6 +150,14 @@ The Mac does all the drawing and streams frames over USB to a small board
 running `led/traktorpad_led/traktorpad_led.ino` (FastLED). A 5 V Pro Micro is
 the easy choice; a Nano or an ESP32 works too (see the notes in the sketch).
 
+Flash it with [PlatformIO](https://platformio.org) (or open the `.ino` in the
+Arduino IDE):
+
+```sh
+cd led
+pio run -e nano -t upload      # or nano_oldbootloader, uno, pro_micro, esp32
+```
+
 ```sh
 python3 server/traktorpad.py --led auto          # first USB serial board found
 python3 server/traktorpad.py --simulate --led-preview   # try it in the terminal

@@ -20,7 +20,9 @@
 
 #include <FastLED.h>
 
+#ifndef DATA_PIN
 #define DATA_PIN     6          // Pro Micro / Nano: D6.  ESP32: e.g. 16
+#endif
 #define NUM_LEDS     256        // 8 x 32
 #define MAX_MILLIAMPS 2500      // FastLED dims frames that would draw more
 #define BAUD         1000000    // ignored by native-USB boards
@@ -77,7 +79,7 @@ void loop() {
         if (received == NUM_LEDS * 3) {
           FastLED.show();
           Serial.write('K');
-          lastFrame = millis();
+          lastFrame = now;
           state = WAIT_SYNC1;
         }
         break;
