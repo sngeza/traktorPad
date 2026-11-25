@@ -136,6 +136,40 @@ Things most likely to need adjusting, in order:
 When reporting a problem, the status text, the terminal output and what you
 tapped are the useful parts.
 
+## LED panel (optional)
+
+A WS2812B 8×32 LED matrix can show the deck the audience is hearing: when a
+track loads, "Artist - Title" scrolls across once, then a scrolling waveform
+around the playhead (red bass, green mids, blue highs; bar lines, hotcues, a
+white playhead) with a progress bar on the bottom row that flashes red in the
+last 30 seconds.
+
+![Wiring](led/wiring.svg)
+
+The Mac does all the drawing and streams frames over USB to a small board
+running `led/traktorpad_led/traktorpad_led.ino` (FastLED). A 5 V Pro Micro is
+the easy choice; a Nano or an ESP32 works too (see the notes in the sketch).
+
+```sh
+python3 server/traktorpad.py --led auto          # first USB serial board found
+python3 server/traktorpad.py --simulate --led-preview   # try it in the terminal
+```
+
+| Option | Default | |
+| --- | --- | --- |
+| `--led PORT` | – | serial port of the board, or `auto` |
+| `--led-preview` | off | draw the panel in the terminal |
+| `--led-brightness` | 0.15 | 0–1; the sketch also caps the current at 2.5 A |
+| `--led-deck N` | auto | always show deck N instead of the master / loudest deck |
+| `--led-layout` | `serpentine-columns` | wiring order: `columns`, `serpentine-rows`, `rows` |
+| `--led-flip` | off | the panel is mounted upside down |
+| `--led-retitle MIN` | 0 | scroll the title again every MIN minutes |
+
+The panel follows the master deck while it is audible, otherwise the loudest
+playing deck, and only switches after the new choice has held for 2 seconds.
+Waveforms are analysed on the Mac with `afconvert` when the iPad has not done it
+yet, into the same cache, so the panel works without the iPad.
+
 ## Good to know
 
 - **Traktor updates** replace the app, which removes the bridge. Run

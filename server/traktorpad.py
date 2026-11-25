@@ -118,6 +118,16 @@ def resolve_track_path(raw):
     return None
 
 
+def cache_file_for(path, cache_dir):
+    """Where the waveform of an audio file is cached (None if it cannot be read)."""
+    try:
+        stat = Path(path).stat()
+    except OSError:
+        return None
+    identity = "%s|%d|%d|v1" % (path, stat.st_size, int(stat.st_mtime))
+    return Path(cache_dir) / (hashlib.sha1(identity.encode()).hexdigest() + ".wave")
+
+
 class Channel:
     """One bridge channel: its command queue and which instance owns it."""
 
@@ -449,14 +459,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def waveform_cache_file(self, query):
         path = self.deck_track(query)
-        if path is None:
-            return None
-        try:
-            stat = path.stat()
-        except OSError:
-            return None
-        identity = "%s|%d|%d|v1" % (path, stat.st_size, int(stat.st_mtime))
-        return self.server.cache_dir / (hashlib.sha1(identity.encode()).hexdigest() + ".wave")
+        return None if path is None else cache_file_for(path, self.server.cache_dir)
 
     def send_bytes(self, body, content_type):
         self.send_response(200)
@@ -608,6 +611,26 @@ def lan_addresses():
     return found
 
 
+def start_led_panel(args, server):
+    import analyze
+    import ledpanel
+
+    outputs = []
+    if args.led:
+        order = ledpanel.led_order(args.led_width, ledpanel.HEIGHT, args.led_layout,
+                                   args.led_flip)
+        outputs.append(ledpanel.SerialOut(args.led, order, brightness=args.led_brightness,
+                                          baud=args.led_baud))
+    if args.led_preview:
+        outputs.append(ledpanel.TerminalOut())
+    panel = ledpanel.LedPanel(
+        server.hub, ledpanel.MultiOut(outputs), server.cache_dir,
+        analyzer=analyze.Analyzer(), deck=args.led_deck, retitle=args.led_retitle * 60,
+        width=args.led_width, resolve=resolve_track_path, cache_file_for=cache_file_for)
+    print("\nLED panel: %s" % (args.led or "terminal preview"))
+    return panel.start()
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
@@ -618,6 +641,23 @@ def main(argv=None):
     parser.add_argument("--no-key", action="store_true",
                         help="do not require the pairing key (trusted networks only)")
     parser.add_argument("--verbose", action="store_true", help="log every request")
+    led = parser.add_argument_group("LED panel (WS2812B matrix on a USB serial board)")
+    led.add_argument("--led", metavar="PORT",
+                     help="serial port of the LED board, or 'auto' for the first USB one")
+    led.add_argument("--led-preview", action="store_true",
+                     help="draw the LED panel in this terminal")
+    led.add_argument("--led-brightness", type=float, default=0.15, metavar="0-1",
+                     help="LED brightness (default 0.15; full white draws ~15 A)")
+    led.add_argument("--led-deck", type=int, choices=(1, 2, 3, 4),
+                     help="always show this deck (default: the one the audience hears)")
+    led.add_argument("--led-layout", default="serpentine-columns",
+                     help="LED wiring order: serpentine-columns (default), columns, "
+                          "serpentine-rows, rows")
+    led.add_argument("--led-flip", action="store_true", help="the panel is upside down")
+    led.add_argument("--led-width", type=int, default=32, help="panel width in LEDs")
+    led.add_argument("--led-baud", type=int, default=1000000)
+    led.add_argument("--led-retitle", type=float, default=0, metavar="MIN",
+                     help="scroll the title again every MIN minutes (default: only on load)")
     args = parser.parse_args(argv)
 
     key = "" if args.no_key else load_key()
@@ -638,11 +678,15 @@ def main(argv=None):
     else:
         print("\nWaiting for Traktor...")
 
+    panel = start_led_panel(args, server) if (args.led or args.led_preview) else None
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nBye.")
     finally:
+        if panel:
+            panel.stop()
         if simulator:
             simulator.stop()
         server.hub.close()
